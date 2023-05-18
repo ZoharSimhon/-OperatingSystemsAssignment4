@@ -20,6 +20,8 @@
 #include <openssl/md5.h>
 #include <sys/stat.h>
 
+#include "hashmap.h"
+
 #define PORT 4000
 #define MESSAGE_LENGTH 1025
 
@@ -35,12 +37,15 @@ void stopReactor(void *thisReactor);
 void startReactor(void *thisReactor);
 void addFd(void *thisReactor, int fd, handler_t handler);
 void waitFor(void *thisReactor);
+void *clientListener(void *thisReactor);
 
 typedef struct _reactor
 {
     struct pollfd *pfds;
     int fd_count;
     int fd_size;
-    // hashMap
+    struct hashmap *FDtoFunction;
     int keepListening;
-} reactor,* preactor;
+    pthread_t *thread;
+} reactor, *preactor;
+

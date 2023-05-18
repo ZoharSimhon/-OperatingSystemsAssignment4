@@ -11,6 +11,7 @@ void *createReactor()
     newReactor->keepListening = 1;
     newReactor->fd_count = 0;
     newReactor->fd_size = 4;
+    newReactor->thread = NULL;
     newReactor->pfds = malloc(sizeof(struct pollfd) * 4);
     if (!newReactor->pfds)
     {
@@ -19,9 +20,17 @@ void *createReactor()
         return NULL;
     }
     // hashmap
+    newReactor->FDtoFunction = hashmap_create();
+    if (!newReactor->FDtoFunction)
+    {
+        free(newReactor->pfds);
+        free(newReactor);
+        printf("hashmap_create error\n");
+    }
 
     return newReactor;
 }
+
 void stopReactor(void *thisReactor)
 {
     preactor pReactor = (preactor)thisReactor;
@@ -32,6 +41,9 @@ void startReactor(void *thisReactor)
 {
     preactor pReactor = (preactor)thisReactor;
     pReactor->keepListening = 1;
+
+    // start thread
+    pthread_create(pReactor->thread, NULL, clientListener, thisReactor);
 }
 
 void addFd(void *thisReactor, int fd, handler_t handler)
@@ -49,7 +61,7 @@ void addFd(void *thisReactor, int fd, handler_t handler)
         {
             perror("realloc pfds");
             free(pReactor);
-            return NULL;
+            return;
         }
     }
     pReactor->pfds[pReactor->fd_count].fd = fd;
@@ -61,5 +73,24 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 
 void waitFor(void *thisReactor)
 {
-    
+    preactor pReactor = (preactor)thisReactor;
+    pthread_join(*pReactor->thread, NULL);
+}
+
+void *clientListener(void *thisReactor)
+{
+    preactor pReactor = (preactor)thisReactor;
+
+    while (pReactor->keepListening)
+    {
+        for (size_t i = 0; i < pReactor->fd_count; i++)
+        {
+            if (pReactor->pfds[i].revents & POLLIN)
+            {
+                // calling hashmap function
+                // if (hashmap[i](i) == -1)
+            }
+        }
+    }
+    return NULL;
 }
