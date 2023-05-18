@@ -70,10 +70,10 @@ void addFd(void *thisReactor, int fd, handler_t handler)
     pReactor->pfds[pReactor->fd_count].fd = fd;
     pReactor->pfds[pReactor->fd_count].events = POLLIN;
     pReactor->fd_count++;
-    int * p = (int*)malloc(sizeof(int));
-    *p = fd;
+    int *fdcpy = (int *)malloc(sizeof(int));
+    *fdcpy = fd;
     // add fd to hashmap
-    hashmap_set(pReactor->FDtoFunction,p, sizeof(int), (uintptr_t)handler);
+    hashmap_set(pReactor->FDtoFunction, fdcpy, sizeof(int), (uintptr_t)handler);
 }
 
 void waitFor(void *thisReactor)
@@ -88,19 +88,16 @@ void *clientListener(void *thisReactor)
 
     while (pReactor->keepListening)
     {
-        printf("count: %d\n", pReactor->fd_count);
         if (poll(pReactor->pfds, pReactor->fd_count, 1000) == -1)
         {
             perror("poll");
             return NULL;
         }
-        hashmap_iterate(pReactor->FDtoFunction, print_entry, NULL);
         for (size_t i = 0; i < pReactor->fd_count; i++)
         {
             uintptr_t function;
             if (pReactor->pfds[i].revents & POLLIN)
             {
-                printf("%d\n",pReactor->pfds[i].fd);
                 // calling hashmap function
                 if (hashmap_get(pReactor->FDtoFunction,
                                 &pReactor->pfds[i].fd, sizeof(int), &function) == false)
@@ -109,7 +106,6 @@ void *clientListener(void *thisReactor)
                     printf("hashmap_get failed\n");
                     continue;
                 }
-                printf("OK\n");
                 handler_t a = (handler_t)function;
                 if (a(pReactor->pfds[i].fd) == -1)
                 {
@@ -118,6 +114,20 @@ void *clientListener(void *thisReactor)
             } // end if
         }     // end for
     }         // end while
-    printf("OK\n");
     return NULL;
+}
+
+void freeReactor(void *thisReactor)
+{
+    preactor pReactor = (preactor)thisReactor;
+
+    //free the hashmap
+    hashmap_iterate(pReactor->FDtoFunction, free_entry, NULL);
+    hashmap_free(pReactor->FDtoFunction);
+
+    //free pfds
+    free(pReactor->pfds);
+
+    //free reactor
+    free(pReactor);
 }

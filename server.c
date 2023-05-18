@@ -56,7 +56,7 @@ int got_client_input(int socket)
         return -1;
     }
     buffer[bytesReceived] = '\0';
-    printf("\nmessage received: %s\n", buffer);
+    printf("message received: %s\n", buffer);
     return 0;
 }
 
@@ -95,7 +95,7 @@ int main()
             perror("accept");
             return -1;
         }
-        printf("The server accept client connection: %d\n", clientSocket);
+        printf("\nThe server accept client connection: %d\n", clientSocket);
         // addFD client to reactor
         addFd(thisReactor, clientSocket, got_client_input);
     }

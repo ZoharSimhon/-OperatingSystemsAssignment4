@@ -38,6 +38,7 @@ void startReactor(void *thisReactor);
 void addFd(void *thisReactor, int fd, handler_t handler);
 void waitFor(void *thisReactor);
 void *clientListener(void *thisReactor);
+void freeReactor(void *thisReactor);
 
 typedef struct _reactor
 {
@@ -49,9 +50,7 @@ typedef struct _reactor
     pthread_t *thread;
 } reactor, *preactor;
 
-void print_entry(void *key, size_t ksize, uintptr_t value, void *usr)
+void free_entry(void *key, size_t ksize, uintptr_t value, void *usr)
 {
-    // prints the entry's key and value
-    // assumes the key is a null-terminated string
-    printf("Entry %d\n", *(int *) key);
+    free((int *)key);
 }
