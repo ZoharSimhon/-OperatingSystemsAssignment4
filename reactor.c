@@ -70,9 +70,10 @@ void addFd(void *thisReactor, int fd, handler_t handler)
     pReactor->pfds[pReactor->fd_count].fd = fd;
     pReactor->pfds[pReactor->fd_count].events = POLLIN;
     pReactor->fd_count++;
-
+    int * p = (int*)malloc(sizeof(int));
+    *p = fd;
     // add fd to hashmap
-    hashmap_set(pReactor->FDtoFunction, &fd, sizeof(int), (uintptr_t)handler);
+    hashmap_set(pReactor->FDtoFunction,p, sizeof(int), (uintptr_t)handler);
 }
 
 void waitFor(void *thisReactor)
@@ -84,7 +85,6 @@ void waitFor(void *thisReactor)
 void *clientListener(void *thisReactor)
 {
     preactor pReactor = (preactor)thisReactor;
-    handler_t function = NULL;
 
     while (pReactor->keepListening)
     {
@@ -94,19 +94,24 @@ void *clientListener(void *thisReactor)
             perror("poll");
             return NULL;
         }
+        hashmap_iterate(pReactor->FDtoFunction, print_entry, NULL);
         for (size_t i = 0; i < pReactor->fd_count; i++)
         {
-            printf("%d\n", pReactor->pfds[i].fd);
+            uintptr_t function;
             if (pReactor->pfds[i].revents & POLLIN)
             {
+                printf("%d\n",pReactor->pfds[i].fd);
                 // calling hashmap function
                 if (hashmap_get(pReactor->FDtoFunction,
-                                &pReactor->pfds[i].fd, sizeof(int), (uintptr_t *)function) == false)
+                                &pReactor->pfds[i].fd, sizeof(int), &function) == false)
                 {
 
                     printf("hashmap_get failed\n");
+                    continue;
                 }
-                else if (function(pReactor->pfds[i].fd) == -1)
+                printf("OK\n");
+                handler_t a = (handler_t)function;
+                if (a(pReactor->pfds[i].fd) == -1)
                 {
                     printf("client's function failed\n");
                 }

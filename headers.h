@@ -49,3 +49,9 @@ typedef struct _reactor
     pthread_t *thread;
 } reactor, *preactor;
 
+void print_entry(void *key, size_t ksize, uintptr_t value, void *usr)
+{
+    // prints the entry's key and value
+    // assumes the key is a null-terminated string
+    printf("Entry %d\n", *(int *) key);
+}
