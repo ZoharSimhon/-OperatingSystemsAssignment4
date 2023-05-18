@@ -4,7 +4,7 @@
 //  Created by Mashpoe on 1/15/21.
 //
 
-#include "map.h"
+#include "hashmap.h"
 #include <stdlib.h>
 #include <string.h>
 //#include <stdio.h>

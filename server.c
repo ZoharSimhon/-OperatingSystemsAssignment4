@@ -42,6 +42,7 @@ int createServerSocket()
         perror("listen() failed");
         return -1;
     }
+    printf("The server is listening\n");
     return serverSocket;
 }
 
@@ -67,13 +68,16 @@ int main()
     {
         return -1;
     }
+    printf("listener sockfd is: %d\n", listener);
 
-    // start reactor - create reactor thread
+    // create reactor thread
     preactor thisReactor = (preactor)createReactor();
     if (!thisReactor)
     {
         return -1;
     }
+    //start reactor
+    // startReactor(thisReactor);
     // define client parametrs
     struct sockaddr_in clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
@@ -90,6 +94,7 @@ int main()
             perror("accept");
             return -1;
         }
+        printf("The server accept client connection\n");
         // addFD client to reactor
         addFd(thisReactor, clientSocket, got_client_input);
     }
