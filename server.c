@@ -77,7 +77,8 @@ int main()
         return -1;
     }
     //start reactor
-    // startReactor(thisReactor);
+    startReactor(thisReactor);
+
     // define client parametrs
     struct sockaddr_in clientAddress;
     socklen_t clientAddressLen = sizeof(clientAddress);
@@ -94,7 +95,7 @@ int main()
             perror("accept");
             return -1;
         }
-        printf("The server accept client connection\n");
+        printf("The server accept client connection: %d\n", clientSocket);
         // addFD client to reactor
         addFd(thisReactor, clientSocket, got_client_input);
     }

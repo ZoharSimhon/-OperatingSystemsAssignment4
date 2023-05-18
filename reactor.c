@@ -11,8 +11,8 @@ void *createReactor()
     newReactor->keepListening = 1;
     newReactor->fd_count = 0;
     newReactor->fd_size = 4;
-    newReactor->thread = NULL;
-    newReactor->pfds = malloc(sizeof(struct pollfd) * 4);
+    newReactor->thread = (pthread_t *)calloc(1, sizeof(pthread_t));
+    newReactor->pfds = (struct pollfd *)malloc(sizeof(struct pollfd) * 4);
     if (!newReactor->pfds)
     {
         perror("malloc pfds");
@@ -43,7 +43,10 @@ void startReactor(void *thisReactor)
     pReactor->keepListening = 1;
 
     // start thread
-    pthread_create(pReactor->thread, NULL, clientListener, thisReactor);
+    if (pthread_create(pReactor->thread, NULL, clientListener, thisReactor) != 0)
+    {
+        perror("pthread_create");
+    }
 }
 
 void addFd(void *thisReactor, int fd, handler_t handler)
@@ -82,10 +85,18 @@ void *clientListener(void *thisReactor)
 {
     preactor pReactor = (preactor)thisReactor;
     handler_t function = NULL;
+
     while (pReactor->keepListening)
     {
+        printf("count: %d\n", pReactor->fd_count);
+        if (poll(pReactor->pfds, pReactor->fd_count, 1000) == -1)
+        {
+            perror("poll");
+            return NULL;
+        }
         for (size_t i = 0; i < pReactor->fd_count; i++)
         {
+            printf("%d\n", pReactor->pfds[i].fd);
             if (pReactor->pfds[i].revents & POLLIN)
             {
                 // calling hashmap function
@@ -100,7 +111,8 @@ void *clientListener(void *thisReactor)
                     printf("client's function failed\n");
                 }
             } // end if
-        } // end for
-    }  // end while
+        }     // end for
+    }         // end while
+    printf("OK\n");
     return NULL;
 }
