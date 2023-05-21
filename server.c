@@ -44,7 +44,7 @@ int createServerSocket()
         perror("listen() failed");
         return -1;
     }
-    printf("The server is listening\n");
+    printf("The server is listening on port: %d\n", PORT);
     return serverSocket;
 }
 
@@ -52,19 +52,25 @@ int got_client_input(int socket)
 {
     char buffer[MESSAGE_LENGTH];
     int bytesReceived = recv(socket, buffer, MESSAGE_LENGTH, 0);
-    if (bytesReceived <= 0)
+    if (bytesReceived < 0)
     {
         perror("recv");
         return -1;
     }
+    if (bytesReceived == 0)
+    {
+        printf("Client %d has left\n", socket);
+        return 1;
+    }
     buffer[bytesReceived] = '\0';
-    printf("message received: %s\n", buffer);
+    printf("message received from client's file descriptor %d: %s\n", socket, buffer);
     return 0;
 }
 
 void sig_handler(int signo)
 {
-    if (signo == SIGINT){
+    if (signo == SIGINT)
+    {
         printf("The server is shutting down...\n");
         freeReactor(thisReactor);
         exit(0);
@@ -79,7 +85,6 @@ int main()
     {
         return -1;
     }
-    printf("listener sockfd is: %d\n", listener);
 
     // create reactor thread
     thisReactor = (preactor)createReactor();
@@ -90,18 +95,8 @@ int main()
     // start reactor
     startReactor(thisReactor);
 
-    // handle control c
+    // handle CTRL C in order to free the data
     signal(SIGINT, sig_handler);
-    // if (signal(SIGINT, sig_handler) == SIG_ERR)
-    // {
-    //     printf("\ncan't catch SIGINT\n");
-    // }
-    // else
-    // {
-    //     printf("\ncan catch SIGINT\n");
-    //     // freeReactor(thisReactor);
-    //     // exit(0);
-    // }
 
     // define client parametrs
     struct sockaddr_in clientAddress;
@@ -119,7 +114,7 @@ int main()
             perror("accept");
             return -1;
         }
-        printf("\nThe server accept client connection: %d\n", clientSocket);
+        printf("\nThe server accepted a new client connection with file descriptor %d\n", clientSocket);
         // addFD client to reactor
         addFd(thisReactor, clientSocket, got_client_input);
     }

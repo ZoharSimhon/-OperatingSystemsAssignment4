@@ -52,9 +52,21 @@ void startReactor(void *thisReactor)
 void addFd(void *thisReactor, int fd, handler_t handler)
 {
     preactor pReactor = (preactor)thisReactor;
+    int isInserted = 0;
+    int freeIndex = pReactor->fd_count;
     // add fd to pollfd
+    // first, find a "free" place
+    for (size_t i = 0; i < pReactor->fd_count; i++)
+    {
+        if (pReactor->pfds[i].fd == -1)
+        {
+            freeIndex = i;
+            isInserted = 1;
+            break;
+        }
+    }
     // If we don't have room, add more space in the pfds array
-    if (pReactor->fd_count == pReactor->fd_size)
+    if (pReactor->fd_count == pReactor->fd_size && !isInserted)
     {
         pReactor->fd_size *= 2; // Double it
 
@@ -67,9 +79,10 @@ void addFd(void *thisReactor, int fd, handler_t handler)
             return;
         }
     }
-    pReactor->pfds[pReactor->fd_count].fd = fd;
-    pReactor->pfds[pReactor->fd_count].events = POLLIN;
-    pReactor->fd_count++;
+    pReactor->pfds[freeIndex].fd = fd;
+    pReactor->pfds[freeIndex].events = POLLIN;
+    if (!isInserted)
+        pReactor->fd_count++;
     int *fdcpy = (int *)malloc(sizeof(int));
     *fdcpy = fd;
     // add fd to hashmap
@@ -81,6 +94,7 @@ void waitFor(void *thisReactor)
     preactor pReactor = (preactor)thisReactor;
     pthread_join(*pReactor->thread, NULL);
 }
+
 
 void *clientListener(void *thisReactor)
 {
@@ -98,19 +112,27 @@ void *clientListener(void *thisReactor)
             uintptr_t function;
             if (pReactor->pfds[i].revents & POLLIN)
             {
+                int fileDescriptor = pReactor->pfds[i].fd;
                 // calling hashmap function
                 if (hashmap_get(pReactor->FDtoFunction,
-                                &pReactor->pfds[i].fd, sizeof(int), &function) == false)
+                                &fileDescriptor, sizeof(int), &function) == false)
                 {
 
                     printf("hashmap_get failed\n");
                     continue;
                 }
-                handler_t a = (handler_t)function;
-                if (a(pReactor->pfds[i].fd) == -1)
+                handler_t clientFunction = (handler_t)function;
+                int clientAns = clientFunction(fileDescriptor);
+                if (clientAns == -1)
                 {
                     printf("client's function failed\n");
                 }
+                else if (clientAns == 1)
+                {
+                    pReactor->pfds[i].fd = -1;
+                    hashmap_remove(pReactor->FDtoFunction, &fileDescriptor, sizeof(int));
+                }
+
             } // end if
         }     // end for
     }         // end while
@@ -123,13 +145,13 @@ void freeReactor(void *thisReactor)
 
     stopReactor(pReactor);
 
-    //free the hashmap
+    // free the hashmap
     hashmap_iterate(pReactor->FDtoFunction, free_entry, NULL);
     hashmap_free(pReactor->FDtoFunction);
 
-    //free pfds
+    // free pfds
     free(pReactor->pfds);
 
-    //free reactor
+    // free reactor
     free(pReactor);
 }
