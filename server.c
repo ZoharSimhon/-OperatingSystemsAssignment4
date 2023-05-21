@@ -1,5 +1,7 @@
 #include "headers.h"
 
+preactor thisReactor;
+
 int createServerSocket()
 {
     struct sockaddr_in serverAddressIPv4;
@@ -60,6 +62,15 @@ int got_client_input(int socket)
     return 0;
 }
 
+void sig_handler(int signo)
+{
+    if (signo == SIGINT){
+        printf("The server is shutting down...\n");
+        freeReactor(thisReactor);
+        exit(0);
+    }
+}
+
 int main()
 {
     // createServer
@@ -71,13 +82,26 @@ int main()
     printf("listener sockfd is: %d\n", listener);
 
     // create reactor thread
-    preactor thisReactor = (preactor)createReactor();
+    thisReactor = (preactor)createReactor();
     if (!thisReactor)
     {
         return -1;
     }
-    //start reactor
+    // start reactor
     startReactor(thisReactor);
+
+    // handle control c
+    signal(SIGINT, sig_handler);
+    // if (signal(SIGINT, sig_handler) == SIG_ERR)
+    // {
+    //     printf("\ncan't catch SIGINT\n");
+    // }
+    // else
+    // {
+    //     printf("\ncan catch SIGINT\n");
+    //     // freeReactor(thisReactor);
+    //     // exit(0);
+    // }
 
     // define client parametrs
     struct sockaddr_in clientAddress;

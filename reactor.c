@@ -121,6 +121,8 @@ void freeReactor(void *thisReactor)
 {
     preactor pReactor = (preactor)thisReactor;
 
+    stopReactor(pReactor);
+
     //free the hashmap
     hashmap_iterate(pReactor->FDtoFunction, free_entry, NULL);
     hashmap_free(pReactor->FDtoFunction);

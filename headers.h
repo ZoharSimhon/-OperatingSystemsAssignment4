@@ -19,6 +19,7 @@
 #include <time.h>
 #include <openssl/md5.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include "hashmap.h"
 
@@ -30,6 +31,8 @@ typedef int (*handler_t)(int);
 
 // server
 int createServerSocket();
+int got_client_input(int socket);
+void sig_handler(int signo);
 
 // reactor
 void *createReactor();
